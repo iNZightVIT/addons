@@ -8,7 +8,7 @@ DemestModule <- setRefClass(
     properties(
         fields = list(
             GUI = "ANY", data = "data.frame",
-            g_response = "ANY", g_vars = "ANY",
+            g_response = "ANY", g_vars = "ANY", g_model = "ANY",
             varnames = "character", vartypes = "character",
             model_types = "list",
             # -- response
@@ -22,8 +22,10 @@ DemestModule <- setRefClass(
             response_state = "list",
             # -- variables
             variable_df = "ANY",
-            variables = "character", dim_info = "list"
+            variables = "character", dim_info = "list", var_table = "data.frame",
+            variables_confirmed = "logical", variables_conf_btn = "ANY",
             # -- model info
+            demarray = "ANY", altarray = "ANY"
             # tab_data = "ANY",
             # exposure = "ANY",
             # used_vars = "ANY",
@@ -38,7 +40,14 @@ DemestModule <- setRefClass(
             secondaryvar = NA_character_,
             binomial_type = NA_character_,
             response_confirmed = FALSE,
-            variables = NA_character_
+            variables = NA_character_,
+            var_table = data.frame(
+                Use = logical(),
+                Variable = character(),
+                Type = factor(levels = c("state", "age", "sex", "time")),
+                Scale = factor(levels = c("Categories", "Intervals", "Points", "Sexes"))
+            ),
+            variables_confirmed = FALSE
         )
     ),
     methods = list(
@@ -167,39 +176,54 @@ DemestModule <- setRefClass(
             font(g_vars) <<- list(weight = "bold")
 
             g_vars$set_borderwidth(5)
-            tbl_vars <- glayout(container = g_vars,
-                expand = TRUE)
-            ii <- 1L
+            # tbl_vars <- glayout(container = g_vars,
+            #     expand = TRUE)
+            # ii <- 1L
 
-            var_table <- data.frame(
-                Use = logical(),
-                Variable = character(),
-                Type = factor(levels = c("state", "age", "sex", "time")),
-                Scale = factor(levels = c("Categories", "Intervals", "Points", "Sexes"))
-            )
             variable_df <<- gdf(var_table)
             add(g_vars, variable_df, expand = TRUE)
             size(variable_df) <<- c(-1, 180)
 
-            addHandlerSelectionChanged(variable_df,
+            addHandlerChanged(variable_df,
                 function(h, ...) {
                     if (variable_df$get_dim()[1] == 0L) return()
+                    var_table <<- variable_df$get_frame()
                     i <- h$obj$get_selected()
                     if (length(i))
                         plot_scale(i)
                 }
             )
 
+            variables_conf_btn <<- gbutton("Save",
+                handler = function(h, ...) {
+                    variables_confirmed <<- !variables_confirmed
+                    blockHandlers(variables_conf_btn)
+                    svalue(variables_conf_btn) <<- ifelse(
+                        variables_confirmed,
+                        "Modify",
+                        "Save"
+                    )
+                    unblockHandlers(variables_conf_btn)
+                }
+            )
+
+            addSpace(g_vars, 5)
+            g_var_btns <- ggroup(container = g_vars)
+            addSpring(g_var_btns)
+            add(g_var_btns, variables_conf_btn)
+            # tbl_vars[ii, 2:3, expand = TRUE] <- variables_conf_btn
+            # ii <- ii + 1L
+
 
             ### -------------------------------------- Model specification
-            g_likelihood <- gexpandgroup("Model specification",
+            g_model <<- gexpandgroup("Model specification",
                 container = mainGrp
             )
-            visible(g_likelihood) <- FALSE
-            font(g_likelihood) <- list(weight = "bold")
-            g_likelihood$set_borderwidth(5)
+            visible(g_model) <<- FALSE
+            font(g_model) <<- list(weight = "bold")
+            g_model$set_borderwidth(5)
 
-            tbl_likelihood <- glayout(container = g_likelihood,
+            tbl_likelihood <- glayout(container = g_model,
                 expand = TRUE)
             ii <- 1L
 
@@ -314,6 +338,18 @@ DemestModule <- setRefClass(
                 visible(g_response) <<- !response_confirmed
                 visible(g_vars) <<- response_confirmed
             })
+
+            addVarTableObserver(function() {
+                # print(var_table)
+            })
+            addVariablesConfirmedObserver(function() {
+                enabled(variable_df) <<- !variables_confirmed
+                visible(g_vars) <<- !variables_confirmed
+                visible(g_model) <<- variables_confirmed
+
+                if (variables_confirmed)
+                    make_arrays()
+            })
         },
         set_variables = function() {
             vars <- varnames[varnames %notin% c(response, secondaryvar)]
@@ -327,7 +363,7 @@ DemestModule <- setRefClass(
                 }
             )
             dscale_names <- sapply(dim_info, dembase::dimscales)
-            var_table <- data.frame(
+            var_table <<- data.frame(
                 Use = rep(TRUE, length(vars)),
                 Variable = vars,
                 Type = factor(dtypes,
@@ -350,15 +386,69 @@ DemestModule <- setRefClass(
                         right = FALSE,
                         include.lowest = max(x) < Inf
                     )
-                    plot(unique(y), yaxt = "n")
+                    plot(unique(y), yaxt = "n",
+                        xlab = var_table$Variable[i])
                 },
                 {
-                    plot(factor(x, levels = x), yaxt = "n")
+                    plot(factor(x, levels = x), yaxt = "n",
+                        xlab = var_table$Variable[i])
                 }
             )
         },
+        make_dem_array = function(data, y, x, fw, dimtypes, dimscales) {
+            if (is.null(y)) return(NULL)
+            d <- data
+            arr <- tapply(data[[y]], data[x], c)
+            f <- switch(fw,
+                "Normal" = ,
+                "Values" = dembase::Values,
+                "Poisson" = ,
+                "Binomial" = ,
+                "Counts" = dembase::Counts
+            )
+            f(arr, dimtypes, dimscales)
+        },
         make_arrays = function() {
+            vars <- var_table$Variable[var_table$Use]
+            vtypes <- as.character(var_table$Type[var_table$Use])
+            vscales <- as.character(var_table$Scale[var_table$Use])
+            names(vtypes) <- names(vscales) <- vars
+            demarray <<- make_dem_array(
+                data,
+                response,
+                vars,
+                model_fw,
+                vtypes,
+                vscales
+            )
+            print(demarray)
+            altarray <<- NULL
+            if (model_fw %in% c("Poisson", "Binomial")) {
+                altarray <<- make_dem_array(
+                    data,
+                    secondaryvar,
+                    vars,
+                    "Counts",
+                    vtypes,
+                    vscales
+                )
+                print(altarray)
+            }
 
+            # collapsedimensions...
+            # if (!all(var_table$Use) && !is.null(altarray)) {
+            #     demarray <<- dembase::collapseDimension(
+            #         demarray,
+            #         dimension = var_table$Variable[!var_table$Use],
+            #         weights = altarray
+            #     )
+            #     altarray <<- dembase::collapseDimension(
+            #         altarray,
+            #         dimension = var_table$Variable[!var_table$Use]
+            #     )
+            # }
+
+            updatePlot()
         },
         updatePlot = function() {
             cat("+------+\n")
@@ -385,6 +475,12 @@ DemestModule <- setRefClass(
         },
         addResponseConfirmedObserver = function(FUN, ...) {
             .self$response_confirmedChanged$connect(FUN, ...)
+        },
+        addVarTableObserver = function(FUN, ...) {
+            .self$var_tableChanged$connect(FUN, ...)
+        },
+        addVariablesConfirmedObserver = function(FUN, ...) {
+            .self$variables_confirmedChanged$connect(FUN, ...)
         }
     )
 )
