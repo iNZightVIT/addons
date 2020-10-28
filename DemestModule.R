@@ -7,18 +7,23 @@ DemestModule <- setRefClass(
     contains = "CustomModule",
     properties(
         fields = list(
-            GUI = "ANY",
+            GUI = "ANY", data = "data.frame",
+            g_response = "ANY", g_vars = "ANY",
             varnames = "character", vartypes = "character",
             model_types = "list",
+            # -- response
             response = "character", response_box = "ANY",
             model = "character", model_box = "ANY",
             model_fw = "character", model_fw_box = "ANY",
             secondaryvar = "character", secondaryvar_box = "ANY",
             exposure_lbl = "ANY",
             binomial_type = "character", binomial_type_chk = "ANY",
-            reponse_confirmed = "logical"
-            # response_type = "ANY",
-            # exposure_label = "ANY", exposure_var = "ANY",
+            response_confirmed = "logical", response_conf_btn = "ANY",
+            response_state = "list",
+            # -- variables
+            variable_df = "ANY",
+            variables = "character", dim_info = "list"
+            # -- model info
             # tab_data = "ANY",
             # exposure = "ANY",
             # used_vars = "ANY",
@@ -32,7 +37,8 @@ DemestModule <- setRefClass(
             model_fw = NA_character_,
             secondaryvar = NA_character_,
             binomial_type = NA_character_,
-            reponse_confirmed = FALSE
+            response_confirmed = FALSE,
+            variables = NA_character_
         )
     ),
     methods = list(
@@ -42,10 +48,9 @@ DemestModule <- setRefClass(
                 embedded = TRUE
             )
 
-            initFields(
-                varnames = names(get_data()),
-                vartypes = sapply(get_data(), iNZightTools::vartype)
-            )
+            data <<- get_data()
+            varnames <<- names(data)
+            vartypes <<- sapply(data, iNZightTools::vartype)
 
             install_dependencies(
                 c("tidyr")
@@ -60,10 +65,10 @@ DemestModule <- setRefClass(
             mainGrp$set_borderwidth(5)
 
             ### -------------------------------------- Response
-            g_response <- gexpandgroup("Response options",
+            g_response <<- gexpandgroup("Response options",
                 container = mainGrp
             )
-            font(g_response) <- list(weight = "bold")
+            font(g_response) <<- list(weight = "bold")
 
             g_response$set_borderwidth(5)
             tbl_response <- glayout(container = g_response,
@@ -124,37 +129,66 @@ DemestModule <- setRefClass(
                 character(),
                 selected = 0L,
                 handler = function(h, ...) {
-
+                    if (length(svalue(h$obj)) && svalue(h$obj) != "")
+                        secondaryvar <<- svalue(h$obj)
+                    else
+                        secondaryvar <<- NA_character_
                 }
             )
             visible(secondaryvar_box) <<- FALSE
-            exposure_lbl <<- glabel("Exposure: ")
-            visible(exposure_lbl) <<- FALSE
-            binomial_type_chk <<- gradio(
-                c("Total", "Failures"),
-                horizontal = TRUE,
-                handler = function(h, ...) binomial_type <<- svalue(h$obj)
-            )
-            visible(binomial_type_chk) <<- FALSE
-            econt <- gvbox()
-            add(econt, exposure_lbl, anchor = c(1, 0))
-            add(econt, binomial_type_chk, anchor = c(1, 0))
-            tbl_response[ii, 1L, anchor = c(1, 0), expand = TRUE] <- econt
+            exposure_lbl <<- glabel("")
+            tbl_response[ii, 1L, anchor = c(1, 0), expand = TRUE] <- exposure_lbl
             tbl_response[ii, 2:3, expand = TRUE] <- secondaryvar_box
+            ii <- ii + 1L
+
+            response_conf_btn <<- gbutton("Save",
+                handler = function(h, ...) {
+                    response_confirmed <<- !response_confirmed
+                    blockHandlers(response_conf_btn)
+                    svalue(response_conf_btn) <<- ifelse(
+                        response_confirmed,
+                        "Modify",
+                        "Save"
+                    )
+                    unblockHandlers(response_conf_btn)
+                }
+            )
+            visible(response_conf_btn) <<- FALSE
+            tbl_response[ii, 2:3, expand = TRUE] <- response_conf_btn
             ii <- ii + 1L
 
 
             ### -------------------------------------- Variable info
-            g_vars <- gexpandgroup("Variable information",
-                container = mainGrp
+            g_vars <<- gexpandgroup("Variable information",
+                container = mainGrp,
+                horizontal = FALSE
             )
-            visible(g_vars) <- FALSE
-            font(g_vars) <- list(weight = "bold")
+            visible(g_vars) <<- FALSE
+            font(g_vars) <<- list(weight = "bold")
 
             g_vars$set_borderwidth(5)
             tbl_vars <- glayout(container = g_vars,
                 expand = TRUE)
             ii <- 1L
+
+            var_table <- data.frame(
+                Use = logical(),
+                Variable = character(),
+                Type = factor(levels = c("state", "age", "sex", "time")),
+                Scale = factor(levels = c("Categories", "Intervals", "Points", "Sexes"))
+            )
+            variable_df <<- gdf(var_table)
+            add(g_vars, variable_df, expand = TRUE)
+            size(variable_df) <<- c(-1, 180)
+
+            addHandlerSelectionChanged(variable_df,
+                function(h, ...) {
+                    if (variable_df$get_dim()[1] == 0L) return()
+                    i <- h$obj$get_selected()
+                    if (length(i))
+                        plot_scale(i)
+                }
+            )
 
 
             ### -------------------------------------- Model specification
@@ -188,13 +222,6 @@ DemestModule <- setRefClass(
                 }
 
                 enabled(model_box) <<- !is.na(response)
-
-                # update list of available variables in 'secondary outcome var'
-                # (i.e., exposure/totals)
-
-
-                # update list of available variables in "Variable List"
-
             })
             addModelObserver(function() {
                 if (is.na(model)) {
@@ -202,48 +229,136 @@ DemestModule <- setRefClass(
                     enabled(model_fw_box) <<- FALSE
                     model_fw_box$set_index(0L)
                     model_fw_box$set_items(model_types$Other)
-                } else if (model == "Other") {
-                    print(glue::glue(" * model: other"))
-                    enabled(model_fw_box) <<- TRUE
                 } else {
                     print(glue::glue(" * model: {model}"))
                     fw_opts <- model_types[[model]]
 
                     blockHandlers(model_fw_box)
+                    v <- model_fw_box$get_value()
                     model_fw_box$set_index(0L)
                     model_fw_box$set_items(fw_opts)
-                    unblockHandlers(model_fw_box)
 
-                    if (length(fw_opts) == 1L)
+                    if (length(fw_opts) == 1L) {
                         model_fw_box$set_index(1L)
+                    } else if (v %in% fw_opts) {
+                        model_fw_box$set_value(v)
+                    }
                     enabled(model_fw_box) <<- length(fw_opts) > 1L
+
+                    unblockHandlers(model_fw_box)
+                    model_fw_box$invoke_change_handler()
                 }
 
             })
             addModelFWObserver(function() {
+                print(model_fw)
                 if (is.na(model_fw) || model_fw == "Normal") {
                     print(glue::glue(" * framework: unknown"))
-                    # disable secondary var stuff:
                     visible(secondaryvar_box) <<- FALSE
-                    visible(exposure_lbl) <<- FALSE
-                    visible(binomial_type_chk) <<- FALSE
-
+                    svalue(exposure_lbl) <<- ""
+                    visible(response_conf_btn) <<- !is.na(model_fw)
                     return()
                 }
                 print(glue::glue(" * framework: {model_fw}"))
 
                 numvars <- varnames[vartypes == "num" & varnames != response]
-                w <- sapply(numvars, function(v) all(get_data()[[v]] == round(get_data()[[v]])))
+                w <- sapply(numvars,
+                    function(v) all(data[[v]] == round(data[[v]]))
+                )
                 intvars <- numvars[w]
 
                 secondaryvar_box$set_items(c("", intvars))
                 secondaryvar_box$set_index(1L)
 
                 visible(secondaryvar_box) <<- TRUE
-                visible(exposure_lbl) <<- model_fw == "Poisson"
-                visible(binomial_type_chk) <<- model_fw == "Binomial"
-
+                enabled(secondaryvar_box) <<- TRUE
+                svalue(exposure_lbl) <<- switch(model_fw,
+                    "Poisson" = "Exposure: ",
+                    "Binomial" = "Total: "
+                )
             })
+            addSecondaryVarObserver(function() {
+                vtype <- switch(model_fw,
+                    "Poisson" = "exposure",
+                    "Binomial" = "total",
+                    ""
+                )
+                if (vtype == "") return()
+
+                if (is.na(secondaryvar)) {
+                    print(glue::glue(" * {vtype}: unknown"))
+                    visible(response_conf_btn) <<- FALSE
+                    return()
+                }
+                print(glue::glue(" * {vtype}: {secondaryvar}"))
+                visible(response_conf_btn) <<- TRUE
+            })
+            addResponseConfirmedObserver(function() {
+                if (response_confirmed) {
+                    x <- c("response_box", "model_box", "model_fw_box", "secondaryvar_box")
+                    response_state <<- lapply(x, function(z) enabled(.self[[z]]))
+                    names(response_state) <<- x
+                    enabled(response_box) <<- FALSE
+                    enabled(model_box) <<- FALSE
+                    enabled(model_fw_box) <<- FALSE
+                    enabled(secondaryvar_box) <<- FALSE
+
+                    # set variables
+                    set_variables()
+                } else {
+                    enabled(response_box) <<- response_state$response_box
+                    enabled(model_box) <<- response_state$model_box
+                    enabled(model_fw_box) <<- response_state$model_fw_box
+                    enabled(secondaryvar_box) <<- response_state$secondaryvar_box
+                }
+                visible(g_response) <<- !response_confirmed
+                visible(g_vars) <<- response_confirmed
+            })
+        },
+        set_variables = function() {
+            vars <- varnames[varnames %notin% c(response, secondaryvar)]
+            dtypes <- dembase:::inferDimtypes(vars)
+            dim_info <<- sapply(seq_along(vars),
+                function(i) {
+                    dembase::inferDimScale(dtypes[i],
+                        labels = as.character(unique(data[[i]])),
+                        name = vars[i]
+                    )
+                }
+            )
+            dscale_names <- sapply(dim_info, dembase::dimscales)
+            var_table <- data.frame(
+                Use = rep(TRUE, length(vars)),
+                Variable = vars,
+                Type = factor(dtypes,
+                    levels = c("state", "age", "sex", "time")),
+                Scale = factor(dscale_names,
+                    levels = c("Categories", "Intervals", "Points", "Sexes"))
+            )
+            variable_df$set_frame(var_table)
+            variable_df$cmd_coerce_column(1L, as.logical)
+            variable_df$hide_row_names(TRUE)
+        },
+        plot_scale = function(i) {
+            d <- dim_info[[i]]
+            s <- dembase::dimscales(d)
+            x <- dembase:::dimvalues(d)
+            switch(s,
+                "Intervals" = {
+                    y <- cut(x[is.finite(x)],
+                        breaks = x,
+                        right = FALSE,
+                        include.lowest = max(x) < Inf
+                    )
+                    plot(unique(y), yaxt = "n")
+                },
+                {
+                    plot(factor(x, levels = x), yaxt = "n")
+                }
+            )
+        },
+        make_arrays = function() {
+
         },
         updatePlot = function() {
             cat("+------+\n")
@@ -264,6 +379,12 @@ DemestModule <- setRefClass(
         },
         addModelFWObserver = function(FUN, ...) {
             .self$model_fwChanged$connect(FUN, ...)
+        },
+        addSecondaryVarObserver = function(FUN, ...) {
+            .self$secondaryvarChanged$connect(FUN, ...)
+        },
+        addResponseConfirmedObserver = function(FUN, ...) {
+            .self$response_confirmedChanged$connect(FUN, ...)
         }
     )
 )
