@@ -10,7 +10,9 @@ wd <- getwd()
 # ui$initializeGui(iris, addonDir = wd)
 
 # demest module testing
-remotes::install_github('StatisticsNZ/demdata')
+# remotes::install_github('StatisticsNZ/demdata')
+# remotes::install_github('StatisticsNZ/dembase')
+# remotes::install_github('StatisticsNZ/demest')
 nzincome <- demdata::nz.income
 
 ui$initializeGui(nzincome, addonDir = wd)
@@ -19,4 +21,4 @@ ui$initializeGui(nzincome, addonDir = wd)
 
 
 
-ui$initializeGui(gapminder, addonDir = wd)
+# ui$initializeGui(gapminder, addonDir = wd)

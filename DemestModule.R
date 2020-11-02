@@ -62,7 +62,7 @@ DemestModule <- setRefClass(
             vartypes <<- sapply(data, iNZightTools::vartype)
 
             install_dependencies(
-                c("tidyr")
+                c("tidyr", "ggplot2")
                 # github = c(
                 #     "StatisticsNZ/dembase",
                 #     "StatisticsNZ/demest"
@@ -353,6 +353,7 @@ DemestModule <- setRefClass(
         },
         set_variables = function() {
             vars <- varnames[varnames %notin% c(response, secondaryvar)]
+            variables <<- vars
             dtypes <- dembase:::inferDimtypes(vars)
             dim_info <<- sapply(seq_along(vars),
                 function(i) {
@@ -451,9 +452,69 @@ DemestModule <- setRefClass(
             updatePlot()
         },
         updatePlot = function() {
-            cat("+------+\n")
-            cat("| plot |\n")
-            cat("+------+\n")
+            cat("++ Response: ")
+            cat(response)
+            if (!is.na(secondaryvar)) cat(" /", secondaryvar)
+
+            cat("\n++ Variables: ")
+            cat(paste(variables, collapse = ", "))
+
+            # first figure out the x-axis: usually age
+            x_var <- NA_character_
+            if (any(var_table$Type == "age")) {
+                x_var <- var_table$Variable[var_table$Type == "age"]
+            } else if (any(var_table$Scale == "Intervals")) {
+                x_var <- var_table$Variable[var_table$Scale == "Intervals"]
+            } else {
+                stop("No continuous variable to use as x-variable")
+            }
+            x_var <- x_var[1L] # in case length > 1L
+
+            # now the colour variable: default gender
+            c_var <- NA_character_
+            if (any(var_table$Type == "sex")) {
+                c_var <- var_table$Variable[var_table$Type == "sex"]
+            } else {
+                message("No colour variable (sex) detected")
+            }
+
+            # finally, subsetting variables
+            svars <- variables[variables %notin% c(x_var, c_var)]
+            if (length(svars) > 2L) {
+                svars <- svars[1:2]
+            }
+            subset <- "NONE"
+            if (length(svars))
+                subset <- paste(svars, collapse = " + ")
+
+            # and the fmla:
+            fmla <- glue::glue("{response} ~ {x_var} | {subset}")
+
+            cat("\n++ formula: ")
+            cat(fmla)
+
+            cat("\n\n")
+
+            p <- ggplot2::ggplot(data,
+                    ggplot2::aes_(
+                        x = as.name(x_var),
+                        y = as.name(response),
+                        colour = if (is.na(c_var)) NULL else as.name(c_var)
+                    )
+                ) +
+                ggplot2::geom_point()
+
+            if (length(svars)) {
+                f1 <- ggplot2::vars(.data[[svars[1]]])
+                f2 <- if (length(svars) > 1L)
+                    ggplot2::vars(.data[[svars[2]]])
+                    else NULL
+                p <- p +
+                    ggplot2::facet_grid(f1, f2)
+            }
+
+            print(p)
+
         },
         close = function() {
             # any module-specific clean up?
