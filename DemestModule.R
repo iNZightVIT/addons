@@ -22,10 +22,14 @@ DemestModule <- setRefClass(
             response_state = "list",
             # -- variables
             variable_df = "ANY",
-            variables = "character", dim_info = "list", var_table = "data.frame",
+            variables = "character", dim_info = "list",
+            var_table = "data.frame",
             variables_confirmed = "logical", variables_conf_btn = "ANY",
             # -- model info
-            demarray = "ANY", altarray = "ANY"
+            demarray = "ANY", altarray = "ANY",
+            model_lbl_likelihood = "ANY",
+            model_lbl_mean = "ANY", model_lbl_var = "ANY",
+            model_fmla = "character", model_fmla_box = "ANY"
             # tab_data = "ANY",
             # exposure = "ANY",
             # used_vars = "ANY",
@@ -227,6 +231,11 @@ DemestModule <- setRefClass(
                 expand = TRUE)
             ii <- 1L
 
+            model_lbl_likelihood <<- glabel("Choose response first")
+            tbl_likelihood[ii, 1:3, expand = TRUE, anchor = c(0, 0)] <-
+                model_lbl_likelihood
+            ii <- ii + 1L
+
 
             ## --------- initialize signals for when things change:
             addResponseObserver(function() {
@@ -264,7 +273,7 @@ DemestModule <- setRefClass(
 
                     if (length(fw_opts) == 1L) {
                         model_fw_box$set_index(1L)
-                    } else if (v %in% fw_opts) {
+                    } else if (length(v) && v %in% fw_opts) {
                         model_fw_box$set_value(v)
                     }
                     enabled(model_fw_box) <<- length(fw_opts) > 1L
@@ -275,12 +284,11 @@ DemestModule <- setRefClass(
 
             })
             addModelFWObserver(function() {
-                print(model_fw)
+                visible(response_conf_btn) <<- !is.na(model_fw)
                 if (is.na(model_fw) || model_fw == "Normal") {
                     print(glue::glue(" * framework: unknown"))
                     visible(secondaryvar_box) <<- FALSE
                     svalue(exposure_lbl) <<- ""
-                    visible(response_conf_btn) <<- !is.na(model_fw)
                     return()
                 }
                 print(glue::glue(" * framework: {model_fw}"))
@@ -311,11 +319,11 @@ DemestModule <- setRefClass(
 
                 if (is.na(secondaryvar)) {
                     print(glue::glue(" * {vtype}: unknown"))
-                    visible(response_conf_btn) <<- FALSE
+                    # visible(response_conf_btn) <<- FALSE
                     return()
                 }
                 print(glue::glue(" * {vtype}: {secondaryvar}"))
-                visible(response_conf_btn) <<- TRUE
+                # visible(response_conf_btn) <<- TRUE
             })
             addResponseConfirmedObserver(function() {
                 if (response_confirmed) {
@@ -329,11 +337,15 @@ DemestModule <- setRefClass(
 
                     # set variables
                     set_variables()
+
+                    # set model spec
+                    set_model()
                 } else {
                     enabled(response_box) <<- response_state$response_box
                     enabled(model_box) <<- response_state$model_box
                     enabled(model_fw_box) <<- response_state$model_fw_box
                     enabled(secondaryvar_box) <<- response_state$secondaryvar_box
+                    svalue(model_lbl_likelihood) <<- "Select response first"
                 }
                 visible(g_response) <<- !response_confirmed
                 visible(g_vars) <<- response_confirmed
@@ -398,7 +410,6 @@ DemestModule <- setRefClass(
         },
         make_dem_array = function(data, y, x, fw, dimtypes, dimscales) {
             if (is.null(y)) return(NULL)
-            d <- data
             arr <- tapply(data[[y]], data[x], c)
             f <- switch(fw,
                 "Normal" = ,
@@ -422,9 +433,10 @@ DemestModule <- setRefClass(
                 vtypes,
                 vscales
             )
-            print(demarray)
             altarray <<- NULL
-            if (model_fw %in% c("Poisson", "Binomial")) {
+            if (model_fw %in% c("Poisson", "Binomial") &&
+                !is.na(secondaryvar)) {
+
                 altarray <<- make_dem_array(
                     data,
                     secondaryvar,
@@ -456,15 +468,19 @@ DemestModule <- setRefClass(
             cat(response)
             if (!is.na(secondaryvar)) cat(" /", secondaryvar)
 
+            vt <- var_table[var_table$Use,]
+
             cat("\n++ Variables: ")
-            cat(paste(variables, collapse = ", "))
+            vars <- vt$Variable
+            cat(paste(vars, collapse = ", "))
+
 
             # first figure out the x-axis: usually age
             x_var <- NA_character_
-            if (any(var_table$Type == "age")) {
-                x_var <- var_table$Variable[var_table$Type == "age"]
-            } else if (any(var_table$Scale == "Intervals")) {
-                x_var <- var_table$Variable[var_table$Scale == "Intervals"]
+            if (any(vt$Type == "age")) {
+                x_var <- vt$Variable[vt$Type == "age"]
+            } else if (any(vt$Scale == "Intervals")) {
+                x_var <- vt$Variable[vt$Scale == "Intervals"]
             } else {
                 stop("No continuous variable to use as x-variable")
             }
@@ -472,14 +488,14 @@ DemestModule <- setRefClass(
 
             # now the colour variable: default gender
             c_var <- NA_character_
-            if (any(var_table$Type == "sex")) {
-                c_var <- var_table$Variable[var_table$Type == "sex"]
+            if (any(vt$Type == "sex")) {
+                c_var <- vt$Variable[vt$Type == "sex"]
             } else {
                 message("No colour variable (sex) detected")
             }
 
             # finally, subsetting variables
-            svars <- variables[variables %notin% c(x_var, c_var)]
+            svars <- vars[vars %notin% c(x_var, c_var)]
             if (length(svars) > 2L) {
                 svars <- svars[1:2]
             }
@@ -495,14 +511,29 @@ DemestModule <- setRefClass(
 
             cat("\n\n")
 
-            p <- ggplot2::ggplot(data,
+            tarr <- demarray
+            if (!is.na(secondaryvar)) tarr <- tarr / altarray
+
+            # if age is Intervals (not points):
+            df <- as.data.frame(tarr,
+                direction = "long",
+                midpoints = x_var
+            )
+
+            cname <- names(df)[ncol(df)]
+            print(cname)
+            print(head(df))
+            p <- ggplot2::ggplot(df,
                     ggplot2::aes_(
                         x = as.name(x_var),
-                        y = as.name(response),
+                        y = as.name(cname),
                         colour = if (is.na(c_var)) NULL else as.name(c_var)
                     )
                 ) +
-                ggplot2::geom_point()
+                ggplot2::geom_point() +
+                ggplot2::geom_path(na.rm = TRUE) +
+                ggplot2::theme_minimal() +
+                ggplot2::ylab(response)
 
             if (length(svars)) {
                 f1 <- ggplot2::vars(.data[[svars[1]]])
@@ -515,6 +546,19 @@ DemestModule <- setRefClass(
 
             print(p)
 
+        },
+        set_model = function() {
+            Model <- model_fw
+            Exposure <- ifelse(is.na(secondaryvar), "", secondaryvar)
+            param <- switch(Model,
+                "Poisson" =
+                    paste0(ifelse(is.na(secondaryvar), "", "n"), "\U03BB"),
+                "Normal" = "\U03BC, \U03C3\U00B2",
+                "Binomial" =
+                    paste0(ifelse(is.na(secondaryvar), "", "n, "), "\U03C0")
+            )
+            lbl <- glue::glue("{response} ~ {Model}({param})")
+            svalue(model_lbl_likelihood) <<- lbl
         },
         close = function() {
             # any module-specific clean up?
