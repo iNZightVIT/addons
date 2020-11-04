@@ -9,6 +9,7 @@ DemestModule <- setRefClass(
         fields = list(
             GUI = "ANY", data = "data.frame",
             g_response = "ANY", g_vars = "ANY", g_model = "ANY",
+            g_fit = "ANY",
             varnames = "character", vartypes = "character",
             model_types = "list",
             # -- response
@@ -29,7 +30,17 @@ DemestModule <- setRefClass(
             demarray = "ANY", altarray = "ANY",
             model_lbl_likelihood = "ANY",
             model_lbl_mean = "ANY", model_lbl_var = "ANY",
-            model_fmla = "character", model_fmla_box = "ANY"
+            model_fmla = "character", model_fmla_box = "ANY",
+            model_confirmed = "logical", model_confirmed_btn = "ANY",
+            # -- fit specs
+            fit_niter = "integer", fit_niter_spec = "ANY",
+            fit_nburn = "integer", fit_nburn_spec = "ANY",
+            fit_nthin = "integer", fit_nthin_spec = "ANY",
+            fit_nchain = "integer", fit_nchain_spec = "ANY",
+            fit_ncore = "integer", fit_ncore_spec = "ANY",
+            model_object = "ANY",
+            model_file = "character",
+            fit_model_btn = "ANY"
             # tab_data = "ANY",
             # exposure = "ANY",
             # used_vars = "ANY",
@@ -51,7 +62,10 @@ DemestModule <- setRefClass(
                 Type = factor(levels = c("state", "age", "sex", "time")),
                 Scale = factor(levels = c("Categories", "Intervals", "Points", "Sexes"))
             ),
-            variables_confirmed = FALSE
+            variables_confirmed = FALSE,
+            model_confirmed = FALSE,
+            fit_niter = 1e2L, fit_nburn = 1e2L,
+            fit_nthin = 2L, fit_nchain = 4L, fit_ncore = 1L
         )
     ),
     methods = list(
@@ -64,6 +78,7 @@ DemestModule <- setRefClass(
             data <<- get_data()
             varnames <<- names(data)
             vartypes <<- sapply(data, iNZightTools::vartype)
+            model_file <<- tempfile()
 
             install_dependencies(
                 c("tidyr", "ggplot2")
@@ -247,6 +262,100 @@ DemestModule <- setRefClass(
             # only for Normal models ... usually just going to be fixed..?
             model_lbl_var <<- glabel("")
 
+            model_confirmed_btn <<- gbutton("Save",
+                handler = function(h, ...) {
+                    model_confirmed <<- !model_confirmed
+                    blockHandlers(model_confirmed_btn)
+                    svalue(model_confirmed_btn) <<- ifelse(
+                        model_confirmed,
+                        "Modify",
+                        "Save"
+                    )
+                    unblockHandlers(model_confirmed_btn)
+                }
+            )
+            tbl_likelihood[ii, 2:3, expand = TRUE] <- model_confirmed_btn
+            ii <- ii + 1L
+
+
+            ### -------------------------------------- Fit specifications
+            g_fit <<- gexpandgroup("Simulation parameters",
+                container = mainGrp
+            )
+            visible(g_fit) <<- FALSE
+            font(g_fit) <<- list(weight = "bold")
+            g_fit$set_borderwidth(5)
+
+            tbl_params <- glayout(container = g_fit,
+                expand = TRUE)
+            ii <- 1L
+
+            lbl <- glabel("Iterations: ")
+            fit_niter_spec <<- gspinbutton(1e2L, 1e6L, by = 1e2L,
+                value = fit_niter,
+                handler = function(h, ...) {
+                    fit_niter <<- svalue(h$obj)
+                }
+            )
+            tbl_params[ii, 1L, expand = TRUE, anchor = c(1, 0)] <- lbl
+            tbl_params[ii, 2:3, expand = TRUE, fill = TRUE] <- fit_niter_spec
+            ii <- ii + 1L
+
+            lbl <- glabel("Burn-in: ")
+            fit_nburn_spec <<- gspinbutton(1e2L, 1e6L, by = 1e2L,
+                value = fit_nburn,
+                handler = function(h, ...) {
+                    fit_nburn <<- svalue(h$obj)
+                }
+            )
+            tbl_params[ii, 1L, expand = TRUE, anchor = c(1, 0)] <- lbl
+            tbl_params[ii, 2:3, expand = TRUE, fill = TRUE] <- fit_nburn_spec
+            ii <- ii + 1L
+
+            lbl <- glabel("Thinning Interval: ")
+            fit_nthin_spec <<- gspinbutton(1L, 1e2L, by = 1L,
+                value = fit_nthin,
+                handler = function(h, ...) {
+                    fit_nthin <<- svalue(h$obj)
+                }
+            )
+            tbl_params[ii, 1L, expand = TRUE, anchor = c(1, 0)] <- lbl
+            tbl_params[ii, 2:3, expand = TRUE, fill = TRUE] <- fit_nthin_spec
+            ii <- ii + 1L
+
+            lbl <- glabel("Chains: ")
+            fit_nchain_spec <<- gspinbutton(1L, 10L,
+                by = 1L,
+                value = fit_nchain,
+                handler = function(h, ...) {
+                    fit_nchain <<- svalue(h$obj)
+                }
+            )
+            tbl_params[ii, 1L, expand = TRUE, anchor = c(1, 0)] <- lbl
+            tbl_params[ii, 2:3, expand = TRUE, fill = TRUE] <- fit_nchain_spec
+            ii <- ii + 1L
+
+            lbl <- glabel("CPU Cores: ")
+            fit_nchain_spec <<- gslider(1L, parallel::detectCores(),
+                by = 1L,
+                value = fit_ncore,
+                handler = function(h, ...) {
+                    fit_nchain <<- svalue(h$obj)
+                }
+            )
+            tbl_params[ii, 1L, expand = TRUE, anchor = c(1, 0)] <- lbl
+            tbl_params[ii, 2:3, expand = TRUE, fill = TRUE] <- fit_nchain_spec
+            ii <- ii + 1L
+
+            # info about total sample size after thinning
+
+
+            fit_model_btn <<- gbutton("Fit Model",
+                handler = function(h, ...) fit_model())
+            tbl_params[ii, 2:3, expand = TRUE, fill = TRUE] <- fit_model_btn
+            ii <- ii + 1L
+
+
 
             ## --------- initialize signals for when things change:
             addResponseObserver(function() {
@@ -374,6 +483,15 @@ DemestModule <- setRefClass(
 
                 if (variables_confirmed)
                     make_arrays()
+            })
+
+            addModelConfirmedObserver(function() {
+                enabled(model_fmla_box) <<- !model_confirmed
+                visible(g_model) <<- !model_confirmed
+                visible(g_fit) <<- model_confirmed
+
+                if (model_confirmed)
+                    save_model()
             })
         },
         set_variables = function() {
@@ -588,6 +706,50 @@ DemestModule <- setRefClass(
                 collapse = " + "
             )
         },
+        save_model = function() {
+            args <- ""
+            if (model_fw == "Poisson") {
+                args <- glue::glue("{args}, useExpose = {!is.na(secondaryvar)}")
+            }
+            model_expr <- glue::glue(
+                "demest::Model(
+                    y ~ demest::{model_fw}(mean ~ {model_fmla}{args})
+                )"
+            )
+            cat(" * Model formula: ")
+            cat(model_expr)
+            cat("\n")
+            model_object <<- eval(parse(text = model_expr))
+            print(model_object)
+        },
+        fit_model = function() {
+            blockHandlers(fit_model_btn)
+            enabled(fit_model_btn) <<- FALSE
+            svalue(fit_model_btn) <<- "Running simulations ..."
+
+            exp_expr <- ifelse(is.na(secondaryvar), "",
+                "exposure = altarray,"
+            )
+            exp <- glue::glue("demest::estimateModel(
+                model = model_object,
+                y = demarray,
+                {exp_expr}
+                filename = '{model_file}',
+                nBurnin = {fit_nburn},
+                nSim = {fit_niter},
+                nChain = {fit_nchain},
+                nThin = {fit_nthin},
+                nCore = {fit_ncore}
+            )")
+
+            eval(parse(text = exp))
+
+            svalue(fit_model_btn) <<- "Fit Model"
+            enabled(fit_model_btn) <<- TRUE
+            unblockHandlers(fit_model_btn)
+
+            print(demest::fetchSummary(model_file))
+        },
         close = function() {
             # any module-specific clean up?
             # delete temp files, etc ...
@@ -614,6 +776,9 @@ DemestModule <- setRefClass(
         },
         addVariablesConfirmedObserver = function(FUN, ...) {
             .self$variables_confirmedChanged$connect(FUN, ...)
+        },
+        addModelConfirmedObserver = function(FUN, ...) {
+            .self$model_confirmedChanged$connect(FUN, ...)
         }
     )
 )
