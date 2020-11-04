@@ -236,6 +236,17 @@ DemestModule <- setRefClass(
                 model_lbl_likelihood
             ii <- ii + 1L
 
+            model_lbl_mean <<- glabel("")
+            model_fmla_box <<- gedit("",
+                handler = function(h, ...) model_fmla <<- svalue(h$obj)
+            )
+            tbl_likelihood[ii, 1L, expand = TRUE, anchor = c(1, 0)] <- model_lbl_mean
+            tbl_likelihood[ii, 2:3, expand = TRUE, fill = TRUE] <- model_fmla_box
+            ii <- ii + 1L
+
+            # only for Normal models ... usually just going to be fixed..?
+            model_lbl_var <<- glabel("")
+
 
             ## --------- initialize signals for when things change:
             addResponseObserver(function() {
@@ -349,6 +360,8 @@ DemestModule <- setRefClass(
                 }
                 visible(g_response) <<- !response_confirmed
                 visible(g_vars) <<- response_confirmed
+
+                variables_confirmed <<- FALSE
             })
 
             addVarTableObserver(function() {
@@ -512,7 +525,11 @@ DemestModule <- setRefClass(
             cat("\n\n")
 
             tarr <- demarray
-            if (!is.na(secondaryvar)) tarr <- tarr / altarray
+            ylab <- response
+            if (!is.na(secondaryvar)) {
+                tarr <- tarr / altarray
+                ylab <- paste(ylab, secondaryvar, sep = " / ")
+            }
 
             # if age is Intervals (not points):
             df <- as.data.frame(tarr,
@@ -533,7 +550,7 @@ DemestModule <- setRefClass(
                 ggplot2::geom_point() +
                 ggplot2::geom_path(na.rm = TRUE) +
                 ggplot2::theme_minimal() +
-                ggplot2::ylab(response)
+                ggplot2::ylab(ylab)
 
             if (length(svars)) {
                 f1 <- ggplot2::vars(.data[[svars[1]]])
@@ -550,15 +567,26 @@ DemestModule <- setRefClass(
         set_model = function() {
             Model <- model_fw
             Exposure <- ifelse(is.na(secondaryvar), "", secondaryvar)
+            par <- switch(Model,
+                "Poisson" = "\U03BB",
+                "Normal" = "\U03BC",
+                "Binomial" = "\U03C0"
+            )
             param <- switch(Model,
                 "Poisson" =
-                    paste0(ifelse(is.na(secondaryvar), "", "n"), "\U03BB"),
-                "Normal" = "\U03BC, \U03C3\U00B2",
+                    paste0(ifelse(is.na(secondaryvar), "", "n"), par),
+                "Normal" = paste0(par, ", \U03C3\U00B2"),
                 "Binomial" =
-                    paste0(ifelse(is.na(secondaryvar), "", "n, "), "\U03C0")
+                    paste0(ifelse(is.na(secondaryvar), "", "n, "), par)
             )
             lbl <- glue::glue("{response} ~ {Model}({param})")
             svalue(model_lbl_likelihood) <<- lbl
+
+            svalue(model_lbl_mean) <<- glue::glue("{par} = ")
+            svalue(model_fmla_box) <<- paste(
+                var_table$Variable[var_table$Use],
+                collapse = " + "
+            )
         },
         close = function() {
             # any module-specific clean up?
