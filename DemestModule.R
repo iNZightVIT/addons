@@ -40,7 +40,8 @@ DemestModule <- setRefClass(
             fit_ncore = "integer", fit_ncore_spec = "ANY",
             model_object = "ANY",
             model_file = "character",
-            fit_model_btn = "ANY"
+            fit_model_btn = "ANY",
+            model_exists = "logical"
             # tab_data = "ANY",
             # exposure = "ANY",
             # used_vars = "ANY",
@@ -65,7 +66,8 @@ DemestModule <- setRefClass(
             variables_confirmed = FALSE,
             model_confirmed = FALSE,
             fit_niter = 1e2L, fit_nburn = 1e2L,
-            fit_nthin = 2L, fit_nchain = 4L, fit_ncore = 1L
+            fit_nthin = 2L, fit_nchain = 4L, fit_ncore = 1L,
+            model_exists = FALSE
         )
     ),
     methods = list(
@@ -664,7 +666,55 @@ DemestModule <- setRefClass(
                         y = as.name(cname),
                         colour = if (is.na(c_var)) NULL else as.name(c_var)
                     )
-                ) +
+                )
+
+            if (model_exists) {
+                # grab means/rates from results:
+                v <- switch(model_fw,
+                    "Poisson" = "rate",
+                    "Binomial" = "prob",
+                    "Normal" = "mean"
+                )
+                fitted_y <- demest::fetch(model_file,
+                    where = c("model", "likelihood", v)
+                )
+                alpha <- 0.95
+                a <- 1 - alpha
+                fitted_q <- dembase::collapseIterations(
+                    fitted_y,
+                    prob = c(a / 2, 0.5, 1 - a / 2)
+                )
+                fitted_df <- as.data.frame(fitted_q,
+                    direction = "long",
+                    midpoints = x_var
+                )
+                fitted_df$quantile <- as.factor(fitted_df$quantile)
+                levels(fitted_df$quantile) <- c("lower", "median", "upper")
+                fitted_df_wide <- tidyr::pivot_wider(fitted_df,
+                    names_from = quantile, values_from = value
+                )
+                p <- p +
+                    ggplot2::geom_ribbon(
+                        ggplot2::aes_(
+                            y = NULL, ymin = ~lower, ymax = ~upper,
+                            fill = if (is.na(c_var)) NULL else as.name(c_var)
+                        ),
+                        alpha = 0.1,
+                        colour = NA,
+                        data = fitted_df_wide,
+                        na.rm = TRUE
+                    ) +
+                    ggplot2::geom_path(
+                        ggplot2::aes_(
+                            y = ~median,
+                            colour = if (is.na(c_var)) NULL else as.name(c_var)
+                        ),
+                        data = fitted_df_wide,
+                        na.rm = TRUE
+                    )
+            }
+
+            p <- p +
                 ggplot2::geom_point() +
                 ggplot2::geom_path(na.rm = TRUE) +
                 ggplot2::theme_minimal() +
@@ -749,6 +799,8 @@ DemestModule <- setRefClass(
             unblockHandlers(fit_model_btn)
 
             print(demest::fetchSummary(model_file))
+            model_exists <<- TRUE
+            updatePlot()
         },
         close = function() {
             # any module-specific clean up?
