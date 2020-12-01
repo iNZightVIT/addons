@@ -9,7 +9,7 @@ DemestModule <- setRefClass(
         fields = list(
             GUI = "ANY", data = "data.frame",
             g_response = "ANY", g_vars = "ANY", g_model = "ANY",
-            g_fit = "ANY",
+            g_fit = "ANY", g_res = "ANY",
             varnames = "character", vartypes = "character",
             model_types = "list",
             # -- response
@@ -41,7 +41,8 @@ DemestModule <- setRefClass(
             model_object = "ANY",
             model_file = "character",
             fit_model_btn = "ANY",
-            model_exists = "logical"
+            model_exists = "logical",
+            model_params = "list", model_param_tree = "ANY"
             # tab_data = "ANY",
             # exposure = "ANY",
             # used_vars = "ANY",
@@ -67,7 +68,8 @@ DemestModule <- setRefClass(
             model_confirmed = FALSE,
             fit_niter = 1e2L, fit_nburn = 1e2L,
             fit_nthin = 2L, fit_nchain = 4L, fit_ncore = 1L,
-            model_exists = FALSE
+            model_exists = FALSE,
+            model_params = list(x = list(y = 2), z = 3)
         )
     ),
     methods = list(
@@ -83,12 +85,14 @@ DemestModule <- setRefClass(
             model_file <<- tempfile()
 
             install_dependencies(
-                c("tidyr", "ggplot2")
+                c("tidyr", "ggplot2", "tidybayes")
                 # github = c(
                 #     "StatisticsNZ/dembase",
                 #     "StatisticsNZ/demest"
                 # )
             )
+
+            GUI$plotToolbar$update(NULL, refresh = "updatePlot")
 
             ## The main code for your module goes here,
             ## inside a top-level container called "mainGrp"
@@ -266,6 +270,7 @@ DemestModule <- setRefClass(
 
             model_confirmed_btn <<- gbutton("Save",
                 handler = function(h, ...) {
+                    model_fmla_box$invoke_change_handler()
                     model_confirmed <<- !model_confirmed
                     blockHandlers(model_confirmed_btn)
                     svalue(model_confirmed_btn) <<- ifelse(
@@ -356,6 +361,38 @@ DemestModule <- setRefClass(
                 handler = function(h, ...) fit_model())
             tbl_params[ii, 2:3, expand = TRUE, fill = TRUE] <- fit_model_btn
             ii <- ii + 1L
+
+
+            ### -------------------------------------- Results stuff
+            g_res <<- gexpandgroup("Results",
+                container = mainGrp
+            )
+            visible(g_res) <<- FALSE
+            font(g_res) <<- list(weight = "bold")
+            g_res$set_borderwidth(5)
+
+            # tbl_results <- glayout(container = g_res,
+            #     expand = TRUE)
+            # ii <- 1L
+
+            offspring <- function(path=character(0), lst, ...) {
+                if(length(path))
+                    obj <- lst[[path]]
+                else
+                    obj <- lst
+                nms <- names(obj)
+                hasOffspring <- sapply(nms, function(i) {
+                    newobj <- obj[[i]]
+                    is.recursive(newobj) && !is.null(names(newobj))
+                })
+                data.frame(parameters=nms, hasOffspring=hasOffspring, ## fred=nms,
+                    stringsAsFactors=FALSE)
+            }
+            model_param_tree <<- gtree(offspring = offspring,
+                offspring.data = model_params,
+                container = g_res
+            )
+            size(model_param_tree) <<- c(-1, 150)
 
 
 
@@ -479,6 +516,12 @@ DemestModule <- setRefClass(
                 # print(var_table)
             })
             addVariablesConfirmedObserver(function() {
+                if (variables_confirmed) {
+                    svalue(model_fmla_box) <<- paste(
+                        var_table$Variable[var_table$Use],
+                        collapse = " + "
+                    )
+                }
                 enabled(variable_df) <<- !variables_confirmed
                 visible(g_vars) <<- !variables_confirmed
                 visible(g_model) <<- variables_confirmed
@@ -494,6 +537,19 @@ DemestModule <- setRefClass(
 
                 if (model_confirmed)
                     save_model()
+            })
+
+            addModelParamsObserver(function() {
+                prnt <- model_param_tree$parent
+                prnt$remove_child(model_param_tree)
+                model_param_tree <<- gtree(offspring = offspring,
+                offspring.data = model_params,
+                container = g_res,
+                    handler = function(h, ...) {
+                        plot_parameter(svalue(h$obj))
+                    }
+                )
+                size(model_param_tree) <<- c(-1, 250)
             })
         },
         set_variables = function() {
@@ -610,7 +666,9 @@ DemestModule <- setRefClass(
 
             # first figure out the x-axis: usually age
             x_var <- NA_character_
-            if (any(vt$Type == "age")) {
+            if (any(vt$Type == "time")) {
+                x_var <- vt$Variable[vt$Type == "time"]
+            } else if (any(vt$Type == "age")) {
                 x_var <- vt$Variable[vt$Type == "age"]
             } else if (any(vt$Scale == "Intervals")) {
                 x_var <- vt$Variable[vt$Scale == "Intervals"]
@@ -624,6 +682,7 @@ DemestModule <- setRefClass(
             if (any(vt$Type == "sex")) {
                 c_var <- vt$Variable[vt$Type == "sex"]
             } else {
+                # we should use the first categorical variable ...
                 message("No colour variable (sex) detected")
             }
 
@@ -652,9 +711,10 @@ DemestModule <- setRefClass(
             }
 
             # if age is Intervals (not points):
+            has_midpts <- vt$Scale[vars == x_var] == "Intervals"
             df <- as.data.frame(tarr,
                 direction = "long",
-                midpoints = x_var
+                midpoints = if (has_midpts) x_var else FALSE
             )
 
             cname <- names(df)[ncol(df)]
@@ -686,7 +746,7 @@ DemestModule <- setRefClass(
                 )
                 fitted_df <- as.data.frame(fitted_q,
                     direction = "long",
-                    midpoints = x_var
+                    midpoints = if (has_midpts) x_var else FALSE
                 )
                 fitted_df$quantile <- as.factor(fitted_df$quantile)
                 levels(fitted_df$quantile) <- c("lower", "median", "upper")
@@ -731,6 +791,23 @@ DemestModule <- setRefClass(
 
             print(p)
 
+        },
+        plot_parameter = function(par) {
+            # extract MCMC
+            mcmc <- demest::fetchMCMC(model_file, par)
+            # 'coda' is imported by 'demest'
+            n <- rownames(summary(mcmc)[[1]])
+            exp <- "tidybayes::gather_draws(mcmc, %s)"
+            exp <- sprintf(exp, paste0("`", n, "`", collapse = ", "))
+            mcmc_tidy <- eval(parse(text = exp))
+            p <- ggplot2::ggplot(
+                mcmc_tidy,
+                ggplot2::aes(.iteration, .value, colour = .chain, group = .chain)
+                ) +
+                ggplot2::geom_path() +
+                ggplot2::facet_wrap(~.variable) +
+                ggplot2::scale_colour_viridis_c()
+            print(p)
         },
         set_model = function() {
             Model <- model_fw
@@ -800,6 +877,16 @@ DemestModule <- setRefClass(
 
             print(demest::fetchSummary(model_file))
             model_exists <<- TRUE
+
+            del <- capture.output(
+                model_params <<-
+                    demest::listContents(ui$activeModule$model_file)
+            )
+            rm(del)
+
+            visible(g_fit) <<- FALSE
+            visible(g_res) <<- TRUE
+
             updatePlot()
         },
         close = function() {
@@ -831,6 +918,9 @@ DemestModule <- setRefClass(
         },
         addModelConfirmedObserver = function(FUN, ...) {
             .self$model_confirmedChanged$connect(FUN, ...)
+        },
+        addModelParamsObserver = function(FUN, ...) {
+            .self$model_paramsChanged$connect(FUN, ...)
         }
     )
 )

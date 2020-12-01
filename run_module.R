@@ -22,3 +22,18 @@ ui$initializeGui(nzincome, addonDir = wd)
 
 
 # ui$initializeGui(gapminder, addonDir = wd)
+
+#x <- capture.output(z <- demest::listContents(ui$activeModule$model_file))
+
+# ui$plotWidget$plotNb$children[[1]]$add_handler_clicked(function(h, ...) {
+#     print(h$obj)
+# })
+
+# RGtk2::gSignalConnect(
+#     ui$plotWidget$plotNb$children[[1]]$widget,
+#     "motion-notify-event",
+#     f = function(w, e) {
+#         # print(w)
+#         print(e)
+#     }
+# )
