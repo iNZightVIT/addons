@@ -759,7 +759,7 @@ DemestModule <- setRefClass(
                             y = NULL, ymin = ~lower, ymax = ~upper,
                             fill = if (is.na(c_var)) NULL else as.name(c_var)
                         ),
-                        alpha = 0.1,
+                        alpha = 0.5,
                         colour = NA,
                         data = fitted_df_wide,
                         na.rm = TRUE
@@ -776,7 +776,10 @@ DemestModule <- setRefClass(
 
             p <- p +
                 ggplot2::geom_point() +
-                ggplot2::geom_path(na.rm = TRUE) +
+                ggplot2::geom_path(
+                    na.rm = TRUE,
+                    lty = ifelse(model_exists, 2L, 1L)
+                ) +
                 ggplot2::theme_minimal() +
                 ggplot2::ylab(ylab)
 
@@ -800,13 +803,26 @@ DemestModule <- setRefClass(
             exp <- "tidybayes::gather_draws(mcmc, %s)"
             exp <- sprintf(exp, paste0("`", n, "`", collapse = ", "))
             mcmc_tidy <- eval(parse(text = exp))
+
+            ## TRACEPLOT:
+            # p <- ggplot2::ggplot(
+            #     mcmc_tidy,
+            #     ggplot2::aes(.iteration, .value, colour = .chain, group = .chain)
+            #     ) +
+            #     ggplot2::geom_path() +
+            #     ggplot2::facet_wrap(~.variable) +
+            #     ggplot2::scale_colour_viridis_c()
+
+            ## median+CI
             p <- ggplot2::ggplot(
                 mcmc_tidy,
-                ggplot2::aes(.iteration, .value, colour = .chain, group = .chain)
+                ggplot2::aes(.value, .variable)
                 ) +
-                ggplot2::geom_path() +
-                ggplot2::facet_wrap(~.variable) +
-                ggplot2::scale_colour_viridis_c()
+                tidybayes::stat_halfeye() +
+                ggplot2::theme_minimal() +
+                ggplot2::xlab("Value") +
+                ggplot2::ylab("Parameter")
+
             print(p)
         },
         set_model = function() {
