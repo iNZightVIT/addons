@@ -3,6 +3,9 @@ on:
     paths:
       - README.Rmd
       - '*.R'
+    branches:
+      - master
+      - dev
 
 name: Render README
 
