@@ -1,0 +1,3 @@
+[submodule "modules/demo-module"]
+	path = modules/demo-module
+	url = https://github.com/iNZightVIT/demo-module.git
