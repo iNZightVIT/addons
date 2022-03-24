@@ -1,10 +1,9 @@
 # this script allows developers to test their module easily
 
-library(devtools)
-load_all('../iNZightModules')
-load_all('../iNZight')
+# remotes::install_github('iNZightVIT/iNZight')
 
 try(ui$close(), TRUE)
 ui <- iNZGUI$new()
-wd <- getwd()
+wd <- file.path(getwd(), "modules")
+
 ui$initializeGui(iris, addonDir = wd)
