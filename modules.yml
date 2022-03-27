@@ -4,12 +4,12 @@
   versions: []
   latest: 0.0.1
   stable: main
-  development: ""
+  development: ''
 - title: Time Series
   author: Tom Elliott
   description: Explore time series data with iNZight.
   versions:
-    - 1.0.0
+  - 1.0.0
   latest: 1.0.0
   stable: main
-  development: ""
+  development: ''
