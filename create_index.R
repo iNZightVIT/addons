@@ -80,7 +80,8 @@
 
 pkgs <- c(
     "desc",
-    "git2r"
+    "git2r",
+    "yaml"
 )
 
 for (pkg in pkgs) {
