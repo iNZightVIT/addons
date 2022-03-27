@@ -7,7 +7,8 @@ jobs:
     name: Make index
     runs-on: macOS-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        submodules: true
       - uses: r-lib/actions/setup-r@v1
       - name: Generate the index
         run: Rscript create_index.R
