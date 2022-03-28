@@ -1,11 +1,13 @@
-- title: Demo Module
+modules/demo-module:
+  title: Demo Module
   author: Tom Elliott
   description: A demonstration of an iNZight add-on module.
   versions: []
   latest: 0.0.1
   stable: main
   development: ''
-- title: Time Series
+modules/inzight-time-series-mod:
+  title: Time Series
   author: Tom Elliott
   description: Explore time series data with iNZight.
   versions:
