@@ -127,6 +127,6 @@ index <- lapply(mods, \(mod) {
         development = dev_branch
     )
 })
-names(index) <- mods
+names(index) <- gsub("modules/", "", mods, fixed = TRUE)
 
 yaml::write_yaml(index, "modules.yml")
