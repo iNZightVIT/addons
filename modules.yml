@@ -2,7 +2,8 @@ demo-module:
   title: Demo Module
   author: Tom Elliott
   description: A demonstration of an iNZight add-on module.
-  versions: []
+  versions:
+  - 0.0.1
   latest: 0.1.0
   stable: main
   development: ''
