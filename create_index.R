@@ -115,7 +115,7 @@ index <- lapply(mods, \(mod) {
         dev_branch <- "development"
     }
 
-    git2r::fetch(name = "origin")
+    system("git fetch --tags")
     git2r::checkout(branch = latest_branch)
 
     info <- list(
