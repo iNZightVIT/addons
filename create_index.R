@@ -93,11 +93,14 @@ mods <- list.dirs("modules", recursive = FALSE)
 d <- getwd()
 
 index <- lapply(mods, \(mod) {
+    message("Module: ", mod)
     setwd(mod)
     on.exit(setwd(d))
 
     branches <- git2r::branches(flags = "remote")
     branch_names <- gsub("origin/", "", sapply(branches, \(x) x$name), fixed = TRUE)
+
+    print(branches)
 
     latest_branch <- ""
     if ("main" %in% branch_names) {
