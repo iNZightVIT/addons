@@ -85,7 +85,7 @@ pkgs <- c(
 )
 
 for (pkg in pkgs) {
-    if (!requireNamespace(pkg)) install.packages(pkg)
+    if (!requireNamespace(pkg, quietly = TRUE)) install.packages(pkg)
 }
 
 # create a list of packages
@@ -100,7 +100,7 @@ index <- lapply(mods, \(mod) {
     branches <- git2r::branches(flags = "remote")
     branch_names <- gsub("origin/", "", sapply(branches, \(x) x$name), fixed = TRUE)
 
-    print(sapply(branches, x$name))
+    print(sapply(branches, \(x) x$name))
 
     latest_branch <- ""
     if ("main" %in% branch_names) {
