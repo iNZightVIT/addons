@@ -97,7 +97,7 @@ index <- lapply(mods, \(mod) {
     setwd(mod)
     on.exit(setwd(d))
 
-    git2r::fetch()
+    system("git fetch -p && git fetch --tags")
     branches <- git2r::branches(flags = "remote")
     branch_names <- gsub("origin/", "", sapply(branches, \(x) x$name), fixed = TRUE)
 
@@ -119,7 +119,6 @@ index <- lapply(mods, \(mod) {
         dev_branch <- "development"
     }
 
-    system("git fetch --tags")
     git2r::checkout(branch = latest_branch)
 
     info <- list(
