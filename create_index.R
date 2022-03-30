@@ -100,7 +100,7 @@ index <- lapply(mods, \(mod) {
     branches <- git2r::branches(flags = "remote")
     branch_names <- gsub("origin/", "", sapply(branches, \(x) x$name), fixed = TRUE)
 
-    print(branches)
+    sapply(branches, print)
 
     latest_branch <- ""
     if ("main" %in% branch_names) {
