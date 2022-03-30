@@ -97,6 +97,7 @@ index <- lapply(mods, \(mod) {
     setwd(mod)
     on.exit(setwd(d))
 
+    git2r::fetch()
     branches <- git2r::branches(flags = "remote")
     branch_names <- gsub("origin/", "", sapply(branches, \(x) x$name), fixed = TRUE)
 
