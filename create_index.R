@@ -98,12 +98,8 @@ index <- lapply(mods, \(mod) {
     on.exit(setwd(d))
 
     system("git fetch -p && git fetch --tags")
-    system("git status")
-    system("git branch -a")
     branches <- git2r::branches(flags = "remote")
     branch_names <- gsub("origin/", "", sapply(branches, \(x) x$name), fixed = TRUE)
-
-    print(sapply(branches, \(x) x$name))
 
     latest_branch <- ""
     if ("main" %in% branch_names) {
