@@ -85,7 +85,7 @@ pkgs <- c(
 )
 
 for (pkg in pkgs) {
-    if (!requireNamespace(pkg)) install.packages(pkg)
+    if (!requireNamespace(pkg, quietly = TRUE)) install.packages(pkg)
 }
 
 # create a list of packages
@@ -93,9 +93,11 @@ mods <- list.dirs("modules", recursive = FALSE)
 d <- getwd()
 
 index <- lapply(mods, \(mod) {
+    message("Module: ", mod)
     setwd(mod)
     on.exit(setwd(d))
 
+    system("git fetch -p && git fetch --tags")
     branches <- git2r::branches(flags = "remote")
     branch_names <- gsub("origin/", "", sapply(branches, \(x) x$name), fixed = TRUE)
 
@@ -115,7 +117,6 @@ index <- lapply(mods, \(mod) {
         dev_branch <- "development"
     }
 
-    system("git fetch --tags")
     git2r::checkout(branch = latest_branch)
 
     info <- list(
@@ -129,5 +130,7 @@ index <- lapply(mods, \(mod) {
     )
 })
 names(index) <- gsub("modules/", "", mods, fixed = TRUE)
+
+print(index)
 
 yaml::write_yaml(index, "modules.yml")

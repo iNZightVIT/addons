@@ -15,4 +15,4 @@ inzight-time-series-mod:
   - 1.0.0
   latest: 1.0.0
   stable: main
-  development: ''
+  development: develop
