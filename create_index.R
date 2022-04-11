@@ -126,11 +126,10 @@ index <- lapply(mods, \(mod) {
         versions = as.list(names(git2r::tags())),
         latest = as.character(desc::desc_get_version("DESCRIPTION")),
         stable = latest_branch,
-        development = dev_branch
+        development = dev_branch,
+        url = git2r::remote_url()
     )
 })
 names(index) <- gsub("modules/", "", mods, fixed = TRUE)
-
-print(index)
 
 yaml::write_yaml(index, "modules.yml")
