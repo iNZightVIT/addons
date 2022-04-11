@@ -7,6 +7,7 @@ demo-module:
   latest: 0.1.0
   stable: main
   development: ''
+  url: https://github.com/iNZightVIT/demo-module.git
 inzight-time-series-mod:
   title: Time Series
   author: Tom Elliott
@@ -16,3 +17,4 @@ inzight-time-series-mod:
   latest: 1.0.0
   stable: main
   development: develop
+  url: https://github.com/iNZightVIT/inzight-time-series-mod.git
