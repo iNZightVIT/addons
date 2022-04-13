@@ -14,7 +14,7 @@ for (mod in list.dirs(wd, recursive = FALSE)) {
 # remotes::install_github('iNZightVIT/iNZight')
 # devtools::load_all("../iNZight")
 try(ui$close(), TRUE)
-ui <- iNZight(addonDir = wd)
+ui <- iNZight(visitorsQ, addonDir = wd)
 
 
 # test installing modules
