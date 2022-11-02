@@ -24,7 +24,8 @@ DemoModule <- setRefClass(
             ## The main code for your module goes here,
             ## inside a top-level container called "mainGrp"
             label <- glabel("This is a demo module",
-                container = mainGrp)
+                container = mainGrp
+            )
 
             ## The UI provides a way for users to change values of "fields"
             colour <<- "cyan"
@@ -57,7 +58,8 @@ DemoModule <- setRefClass(
             # of variables stored in "fields".
             # The UI then alters the values of the fields and calls this function.
             plot(iris$Sepal.Length, iris$Sepal.height,
-                col = colour)
+                col = colour
+            )
         },
         close = function() {
             cat("Closing module\n")

@@ -37,13 +37,12 @@ MINVERSION: `r MIN_VERSION`
 
 To install, download the file and install it from within iNZight:
 
-- Open the __Advanced__ menu
-- Choose __Manage modules__
-- Click the __Browse__ button to locate the addon file
-- Click __Install__
+- Open the **Advanced** menu
+- Choose **Manage modules**
+- Click the **Browse** button to locate the addon file
+- Click **Install**
 
-You can also __remove modules__ from __Manage modules__.
-
+You can also **remove modules** from **Manage modules**.
 
 ## Manual installation
 
@@ -53,7 +52,6 @@ and place it in your modules folder:
 - Windows: `My Documents\iNZightVIT\modules`
 - macOS: `Documents/iNZightVIT/modules`
 - Linux: probably `~/Documents/iNZightVIT/modules`
-
 
 ## Making your own
 

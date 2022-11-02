@@ -1,6 +1,7 @@
 # creates an index of the modules
-`%||%` <- function(a, b)
+`%||%` <- function(a, b) {
     if (is.null(a)) b else a
+}
 
 ## This comes from iNZightModules :
 getModules <- function(dir) {
@@ -22,7 +23,9 @@ getmodule <- function(f) {
         t <- t[-mi]
     }
     t <- paste(collapse = "\n", t)
-    if (!grepl("^[a-zA-Z]+[a-zA-Z0-9]*\\s*<-\\s*setRefClass", t)) return(NULL)
+    if (!grepl("^[a-zA-Z]+[a-zA-Z0-9]*\\s*<-\\s*setRefClass", t)) {
+        return(NULL)
+    }
 
     # ## load module into an environment to avoid clashes
     e <- new.env()
@@ -61,7 +64,8 @@ parse_meta <- function(x) {
 
 create_index <- function() {
     mods <- getModules(".")
-    tbl <- lapply(mods,
+    tbl <- lapply(
+        mods,
         function(mod) {
             as.data.frame(
                 list(

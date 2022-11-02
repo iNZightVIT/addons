@@ -11,15 +11,15 @@ MultivariateModule <- setRefClass(
     # which can be used by other components of the module
     # (for example, plotting)
     activeData = "data.frame",
-    vars       = "character",
-    binaryVar  = "numeric",
-    mid        = "ANY",
-    gtab       = "ANY",
-    mrObject   = "ANY",
+    vars = "character",
+    binaryVar = "numeric",
+    mid = "ANY",
+    gtab = "ANY",
+    mrObject = "ANY",
     byMRObject = "ANY",
-    plotSet    = "ANY",
-    objName    = "character",
-    guessName  = "logical",
+    plotSet = "ANY",
+    objName = "character",
+    guessName = "logical",
     slider.transp = "ANY",
     mrOptions = "ANY",
     text.code = "ANY",
@@ -62,7 +62,7 @@ MultivariateModule <- setRefClass(
         "Correlation Pairs  Plot"             = "pairs_corr",
         "Parallel Coordinates"                = "pcp",
         "Principal Components Analysis"       = "pca",
-        "Multidimensional Scaling"            = "mds"# ,
+        "Multidimensional Scaling"            = "mds" # ,
         # "Non-Metric Multidimensional Scaling" = "nmds"
       )
 
@@ -86,17 +86,18 @@ MultivariateModule <- setRefClass(
       numeric.vars <- names(which(sapply(activeData, is.numeric)))
       vars <<- numeric.vars
       gtab <<- gtable(vars, multiple = TRUE)
-      size(gtab)  <<- c(-1, 350)
+      size(gtab) <<- c(-1, 350)
 
       gtab.container <- glayout()
-      gtab.container[1,1, expand = TRUE, anchor = c(-1, 1)] <- lab
-      gtab.container[2,1, expand = TRUE] <- gtab
+      gtab.container[1, 1, expand = TRUE, anchor = c(-1, 1)] <- lab
+      gtab.container[2, 1, expand = TRUE] <- gtab
       add(top, gtab.container)
 
       timer <<- NULL
       addHandlerSelectionChanged(gtab, handler = function(h, ...) {
-        if (!is.null(timer))
+        if (!is.null(timer)) {
           if (timer$started) timer$stop_timer()
+        }
         timer <<- gtimer(1000, function(...) updateOptions(), one.shot = TRUE)
       })
 
@@ -120,8 +121,9 @@ MultivariateModule <- setRefClass(
 
       slider.transp <<- gslider(0, 100, 10)
       addHandlerChanged(slider.transp, function(h, ...) {
-        if (!is.null(timer))
+        if (!is.null(timer)) {
           if (timer$started) timer$stop_timer()
+        }
         timer <<- gtimer(1000, function(...) updateOptions(), one.shot = TRUE)
       })
 
@@ -137,18 +139,24 @@ MultivariateModule <- setRefClass(
       ndim.selection <- glayout()
 
       ndim.selection[1, 1] <- glabel("N dimensions to decompose to: ")
-      select.ndim <- gslider(2:n.numeric, value = n.numeric,
-                             handler = function(h, ...) updateOptions())
+      select.ndim <- gslider(2:n.numeric,
+        value = n.numeric,
+        handler = function(h, ...) updateOptions()
+      )
       ndim.selection[1, 2, expand = TRUE] <- select.ndim
       add(top, ndim.selection)
 
       dimensions.selection <- glayout()
 
 
-      select.dim1 <- gcombobox(1:n.numeric, selected = 1,
-                               handler = function(h, ...) updateOptions())
-      select.dim2 <- gcombobox(1:n.numeric, selected = 2,
-                               handler = function(h, ...) updateOptions())
+      select.dim1 <- gcombobox(1:n.numeric,
+        selected = 1,
+        handler = function(h, ...) updateOptions()
+      )
+      select.dim2 <- gcombobox(1:n.numeric,
+        selected = 2,
+        handler = function(h, ...) updateOptions()
+      )
       dim.label <- glabel("Dimensions to Plot: ")
       # font(dim.label) <- list(weight = "bold", size = 11)
       dimensions.selection[1, 1:4, expand = TRUE] <- dim.label
@@ -171,12 +179,12 @@ MultivariateModule <- setRefClass(
 
       add(mainGrp, export.plot)
 
-      visible(gtab.container)       <- TRUE
-      visible(transp.layout)        <- FALSE
-      visible(colourvar.selection)   <- FALSE
+      visible(gtab.container) <- TRUE
+      visible(transp.layout) <- FALSE
+      visible(colourvar.selection) <- FALSE
       visible(dimensions.selection) <- FALSE
-      visible(ndim.selection)       <- FALSE
-      visible(export.plot)          <- FALSE
+      visible(ndim.selection) <- FALSE
+      visible(export.plot) <- FALSE
 
       updateOptions <- function() {
         mrOptions$group <<- if (svalue(colourvar.combobox, TRUE) == 1) NULL else svalue(colourvar.combobox)
@@ -192,14 +200,14 @@ MultivariateModule <- setRefClass(
         prev.k <- mrOptions$k
         mrOptions$k <<- as.numeric(svalue(select.ndim))
 
-        visible(gtab.container)       <- mrOptions$type %in% c("pcp", "pairs_corr", "pairs", "pca")
-        visible(transp.layout)        <- mrOptions$type %in% c("pcp")
-        visible(colourvar.selection)  <- mrOptions$type %in% c("pcp", "pca", "mds", "nmds")
-        visible(shapevar.selection)   <- mrOptions$type %in% c("pca", "mds", "nmds")
+        visible(gtab.container) <- mrOptions$type %in% c("pcp", "pairs_corr", "pairs", "pca")
+        visible(transp.layout) <- mrOptions$type %in% c("pcp")
+        visible(colourvar.selection) <- mrOptions$type %in% c("pcp", "pca", "mds", "nmds")
+        visible(shapevar.selection) <- mrOptions$type %in% c("pca", "mds", "nmds")
         visible(dimensions.selection) <- mrOptions$type %in% c("pca", "mds", "nmds")
-        visible(ndim.selection)       <- mrOptions$type %in% c("mds", "nmds")
-        visible(export.plot)          <- mrOptions$type %in% c("pca", "pcp", "mds", "nmds")
-        enabled(exportplotBtn)        <<- mrOptions$type %in% c("pca", "pcp", "mds", "nmds")
+        visible(ndim.selection) <- mrOptions$type %in% c("mds", "nmds")
+        visible(export.plot) <- mrOptions$type %in% c("pca", "pcp", "mds", "nmds")
+        enabled(exportplotBtn) <<- mrOptions$type %in% c("pca", "pcp", "mds", "nmds")
 
         if (mrOptions$type %in% c("pca")) {
           if (length(mrOptions$vars) > 1) {
@@ -230,16 +238,16 @@ MultivariateModule <- setRefClass(
         stock.id = "history",
         tooltip = "View code history",
         handler = function(h, ...) {
-              codehistory <- gtext("",
-                                    expand = TRUE, fill = TRUE,
-                                    font.attr = list(family = "monospace"),
-                                    container = ggroup(
-                                      container = gwindow("Code History",
-                                                          width = 800, height = 600,
-                                                          parent = GUI$win
-                                      )
-                                    )
+          codehistory <- gtext("",
+            expand = TRUE, fill = TRUE,
+            font.attr = list(family = "monospace"),
+            container = ggroup(
+              container = gwindow("Code History",
+                width = 800, height = 600,
+                parent = GUI$win
               )
+            )
+          )
 
           svalue(codehistory) <- rhistory
           font(codehistory) <- list(family = "monospace")
@@ -253,7 +261,9 @@ MultivariateModule <- setRefClass(
         tooltip = "Export Interacive Plot"
       )
       addHandlerClicked(exportplotBtn, function(h, ...) {
-        if (!enabled(h$obj)) return()
+        if (!enabled(h$obj)) {
+          return()
+        }
         suppressWarnings(
           print(plotly::ggplotly())
         )
@@ -261,13 +271,11 @@ MultivariateModule <- setRefClass(
       enabled(exportplotBtn) <<- FALSE
 
       GUI$plotToolbar$update(NULL,
-                             refresh = "updatePlot",
-                             extra = list(showhistbtn, exportplotBtn)
+        refresh = "updatePlot",
+        extra = list(showhistbtn, exportplotBtn)
       )
 
       cat("Running new module\n")
-
-
     },
     ## add new methods to simplify your code
     updatePlot = function() {
@@ -313,46 +321,48 @@ MultivariateModule <- setRefClass(
         rhistory <<- paste0(c("## Plot variables", unname(unlist(lapply(plot_exprs, rlang::expr_text)))), collapse = "\n\n")
         # font(text.code) <<- list(family = "monospace")
       } else if (mrOptions$type %in% c("pca", "mds", "nmds")) {
-
         plot_fun <- list(
           pca = iNZightMultivariate::plot_inzight.pca,
           mds = iNZightMultivariate::plot_inzight.mds,
           nmds = iNZightMultivariate::plot_inzight.nmds
         )[[mrOptions$type]]
 
-          mvObject_name <- attr(mrObject, "var_name")
+        mvObject_name <- attr(mrObject, "var_name")
 
-          plot_exprs <- plot_fun(
-            mvObject_name,
-            data = GUI$dataNameWidget$datName,
-            colour = mrOptions$group,
-            shape = mrOptions$shape,
-            x = mrOptions$dim1,
-            y = mrOptions$dim2
+        plot_exprs <- plot_fun(
+          mvObject_name,
+          data = GUI$dataNameWidget$datName,
+          colour = mrOptions$group,
+          shape = mrOptions$shape,
+          x = mrOptions$dim1,
+          y = mrOptions$dim2
+        )
+
+        eval_env <- rlang::env(
+          !!rlang::sym(GUI$dataNameWidget$datName) := activeData,
+          !!rlang::sym(mvObject_name) := mrObject
+        )
+
+        eval_results <- lapply(plot_exprs, eval, envir = eval_env)
+
+        plot_object <- eval_results[[length(eval_results)]]
+
+        if (length(mrOptions$vars) > 1) {
+          dev.hold()
+          tryCatch(
+            print(plot_object),
+            finally = dev.flush()
           )
-
-          eval_env <- rlang::env(
-            !!rlang::sym(GUI$dataNameWidget$datName) := activeData,
-            !!rlang::sym(mvObject_name) := mrObject
-          )
-
-          eval_results <- lapply(plot_exprs, eval, envir = eval_env)
-
-          plot_object <- eval_results[[length(eval_results)]]
-
-          if (length(mrOptions$vars) > 1) {
-            dev.hold()
-            tryCatch(
-              print(plot_object),
-              finally = dev.flush()
-            )
-          } else {
-            dev.hold()
-            tryCatch({
+        } else {
+          dev.hold()
+          tryCatch(
+            {
               plot(1, 1, type = "n")
               text(0.5, 0.5, labels = "Please select more than one variable")
-            }, finally = dev.flush())
-          }
+            },
+            finally = dev.flush()
+          )
+        }
 
         attr(mrObject, "code")[["plot_intro"]] <<- "## Plot results"
         attr(mrObject, "code")[["plot"]] <<- paste0(unname(unlist(lapply(plot_exprs, rlang::expr_text))), collapse = "\n\n")
@@ -364,7 +374,6 @@ MultivariateModule <- setRefClass(
         if (mrOptions$type == "pca") {
           updateSummary()
         } else {
-
           showTab("plot")
         }
       }
@@ -423,21 +432,21 @@ MultivariateModule <- setRefClass(
       showTab("plot")
     },
     showTab = function(x = c("plot", "summary", "screeplot")) {
-      if (GUI$popOut) return(invisible(NULL))
+      if (GUI$popOut) {
+        return(invisible(NULL))
+      }
       x <- match.arg(x)
       svalue(GUI$plotWidget$plotNb) <<-
         which(names(GUI$plotWidget$plotNb) ==
-                switch(x,
-                       "plot" = "plot",
-                       "summary" = "Summary",
-                       "screeplot" = "Screeplot"
-                )
-        )
+          switch(x,
+            "plot" = "plot",
+            "summary" = "Summary",
+            "screeplot" = "Screeplot"
+          ))
       invisible(NULL)
     },
     closeTab = function(x = c("plot", "summary", "screeplot")) {
-      tab_name <- switch(
-        x,
+      tab_name <- switch(x,
         "plot" = "plot",
         "summary" = "Summary",
         "screeplot" = "Screeplot"

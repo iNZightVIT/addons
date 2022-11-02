@@ -1,4 +1,3 @@
-
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 # iNZight Addons
@@ -18,10 +17,10 @@ MINVERSION: 0
 
 To install, download the file and install it from within iNZight:
 
-  - Open the **Advanced** menu
-  - Choose **Manage modules**
-  - Click the **Browse** button to locate the addon file
-  - Click **Install**
+- Open the **Advanced** menu
+- Choose **Manage modules**
+- Click the **Browse** button to locate the addon file
+- Click **Install**
 
 You can also **remove modules** from **Manage modules**.
 
@@ -30,9 +29,9 @@ You can also **remove modules** from **Manage modules**.
 To install addons manually, simply download the raw R file and place it
 in your modules folder:
 
-  - Windows: `My Documents\iNZightVIT\modules`
-  - macOS: `Documents/iNZightVIT/modules`
-  - Linux: probably `~/Documents/iNZightVIT/modules`
+- Windows: `My Documents\iNZightVIT\modules`
+- macOS: `Documents/iNZightVIT/modules`
+- Linux: probably `~/Documents/iNZightVIT/modules`
 
 ## Making your own
 
