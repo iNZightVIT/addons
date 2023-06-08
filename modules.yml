@@ -9,6 +9,16 @@ demo-module:
   development: ''
   url: https://github.com/iNZightVIT/demo-module.git
   exclude: yes
+inzight-multivariate-module:
+  title: Multivariate
+  author: Daniel Barnett, Tom Elliott
+  description: A module used for multivariate graphics and analysis.
+  versions: []
+  latest: 1.0.1.9000
+  stable: main
+  development: ''
+  url: https://github.com/iNZightVIT/inzight-multivariate-module
+  exclude: no
 inzight-time-series-mod:
   title: Time Series
   author: Tom Elliott
