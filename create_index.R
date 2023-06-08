@@ -128,9 +128,9 @@ index <- lapply(mods, \(mod) {
         stable = latest_branch,
         development = dev_branch,
         url = git2r::remote_url(),
-        exclude = desc::desc_get_field("Exclude",
-            file = "DESCRIPTION", default = FALSE
-        )
+        exclude = as.logical(desc::desc_get_field("Exclude",
+            file = "DESCRIPTION", default = "FALSE"
+        ))
     )
 })
 names(index) <- gsub("modules/", "", mods, fixed = TRUE)
