@@ -14,10 +14,10 @@ wd <- file.path(getwd(), "modules")
 # tdata <- iNZightTools::smart_read('tourism.csv')
 
 # remotes::install_github('iNZightVIT/iNZight')
-# devtools::load_all("../iNZightTS2")
-# devtools::load_all("../iNZight")
+devtools::load_all("../iNZightTS")
+devtools::load_all("../iNZight")
 
-visitorsQ <- iNZightTS2::visitorsQ
+visitorsQ <- iNZightTS::visitorsQ
 visitorsQ_long <- visitorsQ |>
     iNZightTools::reshape_data("long", cols = names(visitorsQ)[-1]) |>
     iNZightTools::rename_vars(c(visitors = "value")) |>
@@ -30,7 +30,7 @@ try(ui$close(), TRUE)
 ui <- iNZight(visitorsQ, addonDir = wd)
 ui <- iNZight(visitorsQ_long, addonDir = wd)
 
-#ui <- iNZight(tdata, addonDir = wd)
+# ui <- iNZight(tdata, addonDir = wd)
 
 
 
