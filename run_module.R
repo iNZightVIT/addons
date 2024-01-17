@@ -1,6 +1,9 @@
 # this script allows developers to test their module easily
 wd <- file.path(getwd(), "modules")
 
+devtools::load_all("../iNZight")
+ui <- iNZight(census.at.school.500, addonDir = wd)
+
 # manually install deps
 # for (mod in list.dirs(wd, recursive = FALSE)) {
 #     f <- file.path(mod, "DESCRIPTION")
@@ -30,7 +33,6 @@ try(ui$close(), TRUE)
 ui <- iNZight(visitorsQ, addonDir = wd)
 ui <- iNZight(visitorsQ_long, addonDir = wd)
 
-# ui <- iNZight(tdata, addonDir = wd)
 
 
 
