@@ -17,7 +17,7 @@ inzight-multivariate-module:
   latest: 1.0.1.9000
   stable: main
   development: ''
-  url: https://github.com/iNZightVIT/inzight-multivariate-module
+  url: https://github.com/iNZightVIT/inzight-multivariate-module.git
   exclude: no
 inzight-time-series-mod:
   title: Time Series
@@ -32,6 +32,6 @@ inzight-time-series-mod:
   - legacy-version
   latest: 1.0.0
   stable: main
-  development: develop
+  development: ''
   url: https://github.com/iNZightVIT/inzight-time-series-mod.git
   exclude: no
