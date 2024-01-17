@@ -58,11 +58,8 @@ Plot3DModule <- setRefClass(
                 c("Select X Variable", numvars),
                 selected = 1,
                 handler = function(h, ...) {
-                    if (svalue(h$obj, index = TRUE) == 1) {
-                        var_x <<- ""
-                    } else {
-                        var_x <<- svalue(h$obj)
-                    }
+                    if (svalue(h$obj, index = TRUE) == 1) var_x <<- ""
+                    else var_x <<- svalue(h$obj)
                     updatePlot()
                 }
             )
@@ -75,11 +72,8 @@ Plot3DModule <- setRefClass(
                 c("Select Y Variable", numvars),
                 selected = 1,
                 handler = function(h, ...) {
-                    if (svalue(h$obj, index = TRUE) == 1) {
-                        var_y <<- ""
-                    } else {
-                        var_y <<- svalue(h$obj)
-                    }
+                    if (svalue(h$obj, index = TRUE) == 1) var_y <<- ""
+                    else var_y <<- svalue(h$obj)
                     updatePlot()
                 }
             )
@@ -92,11 +86,8 @@ Plot3DModule <- setRefClass(
                 c("Select Z Variable", numvars),
                 selected = 1,
                 handler = function(h, ...) {
-                    if (svalue(h$obj, index = TRUE) == 1) {
-                        var_z <<- ""
-                    } else {
-                        var_z <<- svalue(h$obj)
-                    }
+                    if (svalue(h$obj, index = TRUE) == 1) var_z <<- ""
+                    else var_z <<- svalue(h$obj)
                     updatePlot()
                 }
             )
@@ -108,11 +99,8 @@ Plot3DModule <- setRefClass(
             colvarDrop <- gcombobox(c("", catvars),
                 selected = 1,
                 handler = function(h, ...) {
-                    if (svalue(h$obj, index = TRUE) == 1) {
-                        var_group <<- ""
-                    } else {
-                        var_group <<- svalue(h$obj)
-                    }
+                    if (svalue(h$obj, index = TRUE) == 1) var_group <<- ""
+                    else var_group <<- svalue(h$obj)
                     updatePlot()
                 }
             )
@@ -122,8 +110,7 @@ Plot3DModule <- setRefClass(
 
             ## viewing angle
             lbl <- glabel("Rotate vertical :")
-            phiSld <- gslider(-90, 90,
-                by = 1, value = phi,
+            phiSld <- gslider(-90, 90, by = 1, value = phi,
                 handler = function(h, ...) {
                     phi <<- svalue(h$obj)
                     updatePlot()
@@ -134,8 +121,7 @@ Plot3DModule <- setRefClass(
             ii <- ii + 1
 
             lbl <- glabel("Rotate horizontal :")
-            thetaSld <- gslider(-90, 90,
-                by = 1, value = theta,
+            thetaSld <- gslider(-90, 90, by = 1, value = theta,
                 handler = function(h, ...) {
                     theta <<- svalue(h$obj)
                     updatePlot()
@@ -147,14 +133,14 @@ Plot3DModule <- setRefClass(
 
 
             ## Render in 3D (using rgl)
-            if (requireNamespace("plot3Drgl", quietly = TRUE)) {
+            if (requireNamespace('plot3Drgl', quietly = TRUE)) {
                 btn <- gbutton("Open interactive plot",
                     container = mainGrp,
                     handler = function(h, ...) {
                         updatePlot(interactive = TRUE)
                     }
                 )
-                tbl[ii, 1:2, expand = T] <- btn
+                tbl[ii, 1:2, expand=T] <- btn
                 ii <- ii + 1
             }
             add(mainGrp, tbl)
@@ -183,7 +169,7 @@ Plot3DModule <- setRefClass(
             } else {
                 colvar <- as.integer(data[[var_group]])
                 palettes <- iNZightPlots::cat_palette_names()
-                col <- iNZightPlots::inzpalette(names(palettes)[1])(length(unique(colvar)))
+                col <-  iNZightPlots::inzpalette(names(palettes)[1])(length(unique(colvar)))
                 colkey <- list(plot = FALSE)
                 pcol <- col[colvar]
             }

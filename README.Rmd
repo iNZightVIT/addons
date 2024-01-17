@@ -13,6 +13,7 @@ knitr::opts_chunk$set(
 
 # iNZight Addons
 
+<!--
 Below is a list of available addons for iNZight.
 
 ```{r, echo = FALSE}
@@ -28,7 +29,7 @@ if (nrow(tbl)) {
   cat("", file = "addons.txt")
   cat("No addons are currently available.\n")
 }
-```
+``` -->
 
 <!--
 BRANCH: `r Sys.getenv("GITHUB_REF")`
@@ -37,8 +38,8 @@ MINVERSION: `r MIN_VERSION`
 
 To install, download the file and install it from within iNZight:
 
-- Open the **Advanced** menu
-- Choose **Manage modules**
+- Open the **Modules** menu
+- Choose **Manage ...**
 - Click the **Browse** button to locate the addon file
 - Click **Install**
 
@@ -55,4 +56,4 @@ and place it in your modules folder:
 
 ## Making your own
 
-To make your own, simply grab the `DemoModule.R` file and modify!
+To make your own, check out [the demo](https://github.com/iNZightVIT/demo-module.git).

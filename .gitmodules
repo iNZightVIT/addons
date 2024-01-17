@@ -1,0 +1,12 @@
+[submodule "modules/demo-module"]
+	path = modules/demo-module
+	url = https://github.com/iNZightVIT/demo-module.git
+[submodule "modules/inzight-time-series-mod"]
+	path = modules/inzight-time-series-mod
+	url = https://github.com/iNZightVIT/inzight-time-series-mod.git
+[submodule "modules/inzight-multivariate-module"]
+	path = modules/inzight-multivariate-module
+	url = https://github.com/iNZightVIT/inzight-multivariate-module.git
+[submodule "modules/module-quick-explore"]
+	path = modules/module-quick-explore
+	url = https://github.com/iNZightVIT/module-quick-explore.git

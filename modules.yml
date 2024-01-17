@@ -1,0 +1,47 @@
+demo-module:
+  title: Demo Module
+  author: Tom Elliott
+  description: A demonstration of an iNZight add-on module.
+  versions:
+  - 0.0.1
+  latest: 0.1.0
+  stable: main
+  development: ''
+  url: https://github.com/iNZightVIT/demo-module.git
+  exclude: yes
+inzight-multivariate-module:
+  title: Multivariate
+  author: Daniel Barnett, Tom Elliott
+  description: A module used for multivariate graphics and analysis.
+  versions: []
+  latest: 1.0.1.9000
+  stable: main
+  development: ''
+  url: https://github.com/iNZightVIT/inzight-multivariate-module.git
+  exclude: no
+inzight-time-series-mod:
+  title: Time Series
+  author: Tom Elliott
+  description: Explore time series data with iNZight. The new version uses packages
+    from the 'tidyverts' collection <https://tidyverts.org>. If you require access
+    to the old version of iNZight (pre 2023), please choose the 'legacy-version' from
+    the dropdown. We recommend trying the new version, however, as we do not have
+    the resources to continue supporting the old version.
+  versions:
+  - 1.0.0
+  - legacy-version
+  latest: 1.0.0
+  stable: main
+  development: develop
+  url: https://github.com/iNZightVIT/inzight-time-series-mod.git
+  exclude: no
+module-quick-explore:
+  title: Quick Explore
+  author: Tom Elliott
+  description: Plots and summaries for quick exploration of a dataset.
+  versions: []
+  latest: 0.1.0
+  stable: main
+  development: ''
+  url: https://github.com/iNZightVIT/module-quick-explore.git
+  exclude: no
