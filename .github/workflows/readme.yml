@@ -3,6 +3,7 @@ on:
     paths:
       - README.Rmd
       - "*.R"
+      - "modules.yml"
     branches:
       - master
       - dev
