@@ -54,5 +54,4 @@ index <- lapply(mods, \(mod) {
     )
 })
 names(index) <- gsub("modules/", "", mods, fixed = TRUE)
-
 yaml::write_yaml(index, "modules.yml")
