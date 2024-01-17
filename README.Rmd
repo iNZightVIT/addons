@@ -13,23 +13,30 @@ knitr::opts_chunk$set(
 
 # iNZight Addons
 
-<!--
 Below is a list of available addons for iNZight.
 
 ```{r, echo = FALSE}
-source('create_index.R')
-tbl <- create_index()
+index <- yaml::read_yaml("modules.yml")
+tbl <- lapply(index, \(x) {
+  data.frame(
+    Name = x$title,
+    Version = numeric_version(x$latest),
+    Description = x$description,
+    Author = x$author
+  )
+})
+tbl <- do.call(rbind, tbl)
 MIN_VERSION <- ifelse(Sys.getenv("GITHUB_REF") == "refs/heads/master", 1, 0)
 tbl <- tbl[tbl$Version >= numeric_version(MIN_VERSION), ]
 tbl$Version <- as.character(tbl$Version)
 if (nrow(tbl)) {
-  write.dcf(tbl, "addons.txt")
-  knitr::kable(tbl[, -5], row.names = FALSE)
+  # write.dcf(tbl, "addons.txt")
+  knitr::kable(tbl, row.names = FALSE)
 } else {
-  cat("", file = "addons.txt")
+  # cat("", file = "addons.txt")
   cat("No addons are currently available.\n")
 }
-``` -->
+```
 
 <!--
 BRANCH: `r Sys.getenv("GITHUB_REF")`
