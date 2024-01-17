@@ -32,6 +32,16 @@ inzight-time-series-mod:
   - legacy-version
   latest: 1.0.0
   stable: main
-  development: ''
+  development: develop
   url: https://github.com/iNZightVIT/inzight-time-series-mod.git
+  exclude: no
+module-quick-explore:
+  title: Quick Explore
+  author: Tom Elliott
+  description: Plots and summaries for quick exploration of a dataset.
+  versions: []
+  latest: 0.1.0
+  stable: main
+  development: ''
+  url: https://github.com/iNZightVIT/module-quick-explore.git
   exclude: no
